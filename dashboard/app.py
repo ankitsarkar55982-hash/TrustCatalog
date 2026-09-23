@@ -164,38 +164,107 @@ def guest_catalog_teaser(conn):
             st.write(f"${p['price']:.2f} · {p['stock']} in stock")
     st.page_link("pages/1_Shop.py", label="Go to the full Shop →", icon="🛒")
 
+@st.cache_resource(show_spinner="Preparing TrustCatalog demo data...")
+def ensure_demo_data():
+    """
+    Initialize the demo accounts/catalog once per Streamlit process.
+
+    The normal session startup creates the database schema, but the demo
+    accounts and starter catalog are created by scripts/init_catalog.py.
+    This runs that seeding routine only when the deployed database is
+    missing the demo admin or starter products.
+    """
+    conn = shop_db.get_connection()
+    try:
+        shop_db.init_schema(conn)
+
+        admin_exists = conn.execute(
+            """
+            SELECT 1
+            FROM users
+            WHERE username = 'demo_admin'
+              AND role = 'ADMIN'
+            LIMIT 1
+            """
+        ).fetchone()
+
+        product_count = conn.execute(
+            "SELECT COUNT(*) FROM catalog_products"
+        ).fetchone()[0]
+    finally:
+        conn.close()
+
+    if admin_exists is None or product_count == 0:
+        from scripts import init_catalog
+
+        init_catalog.main()
+
+    return True
+
 
 def main():
+    # Streamlit Cloud does not automatically run scripts/init_catalog.py.
+    # Seed the demo accounts/catalog when they are missing.
+    ensure_demo_data()
+
     conn = session.get_connection()
 
-    with session.friendly_errors():
-        session.sidebar_account_box(conn)
-        hero()
+    try:
+        with session.friendly_errors():
+            session.sidebar_account_box(conn)
+            hero()
 
-        user = session.current_user()
-        if user:
-            st.success(f"You are signed in as **{user['display_name']}** ({user['role'].title()}).")
-            c1, c2 = st.columns(2)
-            with c1:
-                st.page_link("pages/1_Shop.py", label="Go shopping", icon="🛒")
-            with c2:
-                if user["role"] == "SELLER":
-                    st.page_link("pages/4_Seller_Center.py", label="Seller Center", icon="🏪")
-                elif user["role"] == "ADMIN":
-                    st.page_link("pages/5_Admin_Center.py", label="Admin Center", icon="🛡️")
-                else:
-                    st.page_link("pages/3_My_Orders.py", label="My Orders", icon="📦")
-        else:
-            tab1, tab2 = st.tabs(["Log in", "Create account"])
-            with tab1:
-                login_form(conn)
-            with tab2:
-                register_form(conn)
+            user = session.current_user()
 
-        st.divider()
-        guest_catalog_teaser(conn)
+            if user:
+                st.success(
+                    f"You are signed in as **{user['display_name']}** "
+                    f"({user['role'].title()})."
+                )
 
-    conn.close()
+                c1, c2 = st.columns(2)
+
+                with c1:
+                    st.page_link(
+                        "pages/1_Shop.py",
+                        label="Go shopping",
+                        icon="🛒",
+                    )
+
+                with c2:
+                    if user["role"] == "SELLER":
+                        st.page_link(
+                            "pages/4_Seller_Center.py",
+                            label="Seller Center",
+                            icon="🏪",
+                        )
+                    elif user["role"] == "ADMIN":
+                        st.page_link(
+                            "pages/5_Admin_Center.py",
+                            label="Admin Center",
+                            icon="🛡️",
+                        )
+                    else:
+                        st.page_link(
+                            "pages/3_My_Orders.py",
+                            label="My Orders",
+                            icon="📦",
+                        )
+
+            else:
+                tab1, tab2 = st.tabs(["Log in", "Create account"])
+
+                with tab1:
+                    login_form(conn)
+
+                with tab2:
+                    register_form(conn)
+
+            st.divider()
+            guest_catalog_teaser(conn)
+
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":
