@@ -23,10 +23,7 @@ DATABASE_DIR = BASE_DIR / "database"
 DB_PATH = DATABASE_DIR / "trustcatalog.db"
 MODEL_PATH = MODELS_DIR / "isolation_forest.joblib"
 
-ASSETS_DIR = BASE_DIR / "assets"
-PRODUCT_IMAGES_DIR = ASSETS_DIR / "products"
-
-for _d in (RAW_DIR, DEMO_DIR, PROCESSED_DIR, MODELS_DIR, DATABASE_DIR, PRODUCT_IMAGES_DIR):
+for _d in (RAW_DIR, DEMO_DIR, PROCESSED_DIR, MODELS_DIR, DATABASE_DIR):
     _d.mkdir(parents=True, exist_ok=True)
 
 # ----------------------------------------------------------------------

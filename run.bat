@@ -32,7 +32,7 @@ if errorlevel 1 (
 
 REM ---- 2. virtual environment ----------------------------------------
 if not exist ".venv\Scripts\python.exe" (
-    echo [1/6] Creating virtual environment .venv ...
+    echo [1/5] Creating virtual environment .venv ...
     python -m venv .venv
     if errorlevel 1 (
         echo [ERROR] Could not create the virtual environment.
@@ -40,7 +40,7 @@ if not exist ".venv\Scripts\python.exe" (
         exit /b 1
     )
 ) else (
-    echo [1/6] Virtual environment already exists.
+    echo [1/5] Virtual environment already exists.
 )
 
 set "PY=.venv\Scripts\python.exe"
@@ -48,7 +48,7 @@ set "PY=.venv\Scripts\python.exe"
 REM ---- 3. dependencies ------------------------------------------------
 "%PY%" -c "import streamlit, plotly, sklearn, pandas" >nul 2>&1
 if errorlevel 1 (
-    echo [2/6] Installing dependencies ^(first run only, takes a few minutes^) ...
+    echo [2/5] Installing dependencies ^(first run only, takes a few minutes^) ...
     "%PY%" -m pip install --upgrade pip
     "%PY%" -m pip install -r requirements.txt
     if errorlevel 1 (
@@ -57,39 +57,33 @@ if errorlevel 1 (
         exit /b 1
     )
 ) else (
-    echo [2/6] Dependencies already installed.
+    echo [2/5] Dependencies already installed.
 )
 
 REM ---- 4. data --------------------------------------------------------
 if exist "data\raw\olist_orders_dataset.csv" (
-    echo [3/6] Real Olist dataset found in data\raw - using it.
+    echo [3/5] Real Olist dataset found in data\raw - using it.
 ) else (
     if exist "data\demo\olist_orders_dataset.csv" (
-        echo [3/6] Demo dataset already generated.
+        echo [3/5] Demo dataset already generated.
     ) else (
-        echo [3/6] No dataset found - generating DEMO data ...
+        echo [3/5] No dataset found - generating DEMO data ...
         "%PY%" scripts\generate_demo_data.py
         if errorlevel 1 goto :failed
     )
 )
 
+REM ---- 5. pipeline ----------------------------------------------------
 if exist "database\trustcatalog.db" (
-    echo [4/6] Pipeline results already exist. Delete database\trustcatalog.db to force a rerun.
+    echo [4/5] Pipeline results already exist. Delete database\trustcatalog.db to force a rerun.
 ) else (
-    echo [4/6] Running the risk pipeline ...
+    echo [4/5] Running the pipeline ...
     "%PY%" scripts\run_pipeline.py
     if errorlevel 1 goto :failed
 )
 
-REM ---- 6. shop catalog + demo accounts --------------------------------
-echo [5/6] Seeding shop accounts and product catalog ...
-"%PY%" scripts\init_catalog.py
-if errorlevel 1 goto :failed
-
-REM ---- 7. launch ------------------------------------------------------
-echo [6/6] Launching the platform - your browser will open shortly.
-echo       Demo accounts: demo_customer / demo_seller / demo_admin
-echo       Password for all three: DemoPass!2026  (DEMO ONLY)
+REM ---- 6. launch ------------------------------------------------------
+echo [5/5] Launching the dashboard - your browser will open shortly.
 echo       Press Ctrl+C in this window to stop the server.
 echo.
 "%PY%" -m streamlit run dashboard\app.py

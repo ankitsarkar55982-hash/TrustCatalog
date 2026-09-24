@@ -439,47 +439,7 @@ automatically. Expect the pipeline to take roughly 1–3 minutes on the full
 
 ---
 
-## 22. Product images
-
-Every catalog product resolves to one of three states, tried in this
-order by `src/images.py::resolve_product_display()`: **(1) a local file**
-under `assets/products/` (preferred — works fully offline, guaranteed to
-still be there after a redeploy), **(2) a validated `image_url`** (used
-only when no local file is set — the image loads directly in the
-visitor's browser; this app never fetches the URL server-side, which is
-what actually rules out SSRF here rather than a URL allowlist), or
-**(3) nothing**, in which case the UI shows a plain "Image unavailable"
-box — never an emoji, never a broken-image icon.
-
-**Honesty about what's actually in `assets/products/` right now:** the 16
-files there are procedurally generated with Pillow (`scripts/generate_product_images.py`),
-styled to resemble studio product photography — neutral seamless
-background, soft drop shadow, directionally-shaded object instead of a
-flat icon fill — but they are illustrations of the product's shape, not
-photographs. This sandbox has no internet access, so nothing was
-downloaded, scraped, or licensed from anywhere; claiming otherwise would
-be exactly the kind of fabricated capability this project's own
-instructions forbid.
-
-**Replacing them with real photos is a pure file swap, no code changes:**
-save a real photo as (for example) `assets/products/chef_knife.jpg`,
-keeping the same filename `catalog_products.image_filename` already
-points to (or update that column via Seller Center's product-edit image
-picker), and it renders immediately — `resolve_product_image()` doesn't
-care whether the bytes came from Pillow or a camera, only that the file
-exists at that path with an allowed extension (`.png .jpg .jpeg .webp`).
-
-Three ways to attach an image to a product, all in Seller Center's
-add/edit-product forms: **upload a file** (validated by
-`security.validate_image_upload()` — extension allowlist, 5MB cap,
-magic-byte content sniffing, stored under a random filename, original
-filename discarded), **paste an image URL** (validated by
-`security.clean_image_url()` — https/http only, rejects `localhost`,
-loopback, private-network, and cloud-metadata hosts as a defensive
-measure even though the server never connects to it), or **pick one of
-the built-in demo images**.
-
-## 23. Project structure
+## 22. Project structure
 
 ```
 TrustCatalog/
@@ -519,3 +479,14 @@ TrustCatalog/
 ├── .gitignore
 └── README.md
 ```
+
+## Role-based access gateway
+
+TrustCatalog now opens with a role-selection gateway: Customer, Seller, or Admin.
+Customer and Seller users can register on their first visit and log in later with
+username/email and password. Admin registration is disabled; the private admin
+account is provisioned by `src/auth.py`.
+
+For production, set `TRUSTCATALOG_ADMIN_USERNAME`, `TRUSTCATALOG_ADMIN_EMAIL`, and
+`TRUSTCATALOG_ADMIN_PASSWORD` as private Streamlit secrets/environment variables.
+The local prototype fallback credentials should be changed before public use.
